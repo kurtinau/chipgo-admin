@@ -244,6 +244,7 @@ export default class TreeView extends Component {
     componentDidUpdate(prevProps, prevState) {
         const {undoNode, originalNode, fakeDeleting, unDeleting} = this.props;
         if (!isEmpty(undoNode) && prevProps.undoNode !== undoNode) {
+            console.log('update after undo click');
             if (undoNode.source === 'removing') {
                 this.handleUndoRemoving(undoNode);
             } else if (undoNode.source === 'editing' || undoNode.source === 'undelete') {
@@ -282,6 +283,7 @@ export default class TreeView extends Component {
             }
             this.props.removeUndoNode();
         } else if ((prevProps.fakeDeleting === 0) && (fakeDeleting !== 0)) {
+            console.log('fake deleting');
             //when fake delete category
             if (this.state.checked) {
                 const nodes = this.props.categories.filter(node => node.id === fakeDeleting);
@@ -305,50 +307,61 @@ export default class TreeView extends Component {
             }
             this.props.resetFakeDeleting();
         } else if ((prevProps.unDeleting === 0) && (unDeleting !== 0)) {
+            console.log('undeleting');
             //when unDeleting success, find node and update it, and set deletable true
             const matches = this.searchNode(prevState.treeData, unDeleting);
             const newNode = {...matches[0].node, isDeleted: 0, deletable: true};
-            const path = matches[0].path;
-            this.setState({
-                treeData: changeNodeAtPath({
-                    treeData: prevState.treeData,
-                    path,
-                    getNodeKey,
-                    newNode: newNode,
-                }),
-            });
-            this.props.resetUnDeleting();
+            if (matches.length > 0) {
+                const path = matches[0].path;
+                this.setState({
+                    treeData: changeNodeAtPath({
+                        treeData: prevState.treeData,
+                        path,
+                        getNodeKey,
+                        newNode: newNode,
+                    }),
+                });
+                this.props.resetUnDeleting();
+            }
+
         } else if (prevProps.categories.length > this.props.categories.length) {
+            console.log('delete category permanently');
             //after deleting category permanently, need find node and remove it
             const deletedId = this.props.deleting;
             const matches = this.searchNode(prevState.treeData, deletedId);
-            const path = matches[0].path;
-            this.setState({
-                treeData: removeNodeAtPath({
-                    treeData: prevState.treeData,
-                    path,
-                    getNodeKey,
-                }),
-            });
-            this.props.resetDeleting();
-        } else if (prevProps.categories.length < this.props.categories.length){
+            if (matches.length > 0) {
+                const path = matches[0].path;
+                this.setState({
+                    treeData: removeNodeAtPath({
+                        treeData: prevState.treeData,
+                        path,
+                        getNodeKey,
+                    }),
+                });
+                this.props.resetDeleting();
+            }
+
+        } else if (prevProps.categories.length < this.props.categories.length) {
+            console.log('add new category');
             //after add new category, need update the new node's id
             const addingId = this.props.adding;
             const matches = this.searchNode(prevState.treeData, addingId);
-            const path = matches[0].path;
-            let newNode = {...matches[0].node};
-            delete newNode.id;
-            const originalId = findIdByFields(this.props.categories,newNode);
-            newNode = {...newNode, id: originalId};
-            this.setState({
-                treeData: changeNodeAtPath({
-                    treeData: prevState.treeData,
-                    path,
-                    getNodeKey,
-                    newNode: newNode,
-                }),
-            });
-            this.props.resetAdding();
+            if (matches.length > 0) {
+                const path = matches[0].path;
+                let newNode = {...matches[0].node};
+                delete newNode.id;
+                const originalId = findIdByFields(this.props.categories, newNode);
+                newNode = {...newNode, id: originalId};
+                this.setState({
+                    treeData: changeNodeAtPath({
+                        treeData: prevState.treeData,
+                        path,
+                        getNodeKey,
+                        newNode: newNode,
+                    }),
+                });
+                this.props.resetAdding();
+            }
         }
     }
 
@@ -533,10 +546,6 @@ export default class TreeView extends Component {
                                        onClick={(e) => this.showDeletedCategories(e)}/><p>Show Deleted Categories</p>
                         </Row>
                     </Col>
-                    {/*<Col>*/}
-                    {/*</Col>*/}
-                    {/*<Col>*/}
-                    {/*</Col>*/}
                 </Row>
                 <div style={{height: 966}}>
                     <SortableTree
