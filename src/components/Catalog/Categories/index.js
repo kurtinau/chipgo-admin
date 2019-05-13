@@ -43,7 +43,7 @@ export default class Categories extends Component {
                             </CardHeader>
                             <CardBody>
                                 <div style={{height: 1000}}>
-                                    <RevisionHistory submitingId={0}/>
+                                    <RevisionHistory/>
                                 </div>
                             </CardBody>
                         </Card>
