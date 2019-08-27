@@ -6,7 +6,7 @@ const errorReducer = (state = {}, action) => {
     if (!matches) return state;
 
     const [, requestName, requestState] = matches;
-    const responseData = (typeof payload.response === 'undefined') ? 'Loading Error...' : payload.response.data;
+    const responseData = (typeof payload.response === 'undefined') ? '\n' + 'An error occurred fetching data: An unknown error occurred' : payload.response.data;
     return {
         ...state,
         // Store errorMessage

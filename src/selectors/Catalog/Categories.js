@@ -1,5 +1,6 @@
 import {getItemById, getItemsUtil} from "../util";
 import {arrayIsEmpty, isEmpty} from "../../util";
+import { createSelector } from 'reselect';
 
 const getCategoriesState = store => store.catalog.categories;
 
@@ -11,11 +12,19 @@ const getCategoryById = (store, id) => {
     return getItemById(getCategoriesState(store), id);
 }
 
-// const getCategoryById = (store, id) => getCategoriesState(store) ? getCategoriesState(store).byIds[id] : {};
 
 const getCategoryList = store => getCategoriesState(store) ? getCategoriesState(store).allIds : [];
 
-// export const getCategories = store => getItemsUtil(getCategoriesState(store));
+const getCategoryByIds = store => getCategoriesState(store) ? getCategoriesState(store).byIds : {};
+
+export const getCategories = createSelector(
+    [getCategoryList, getCategoryByIds],
+    (allIds, byIds) => {
+        return allIds.map(id => byIds[id])
+    }
+);
+
+// export const getCategories = store => arrayIsEmpty(getCategoryList(store)) ? [] : getCategoryList(store).map(id => getCategoryById(store, id));
 
 const getHistoryState = store => getCategoriesState(store).revisionHistory;
 
@@ -27,7 +36,6 @@ const getNewAddedNodeById = (store, id) => {
     return getHistoryState(store).newNodes.byIds[id];
 };
 
-export const getCategories = store => arrayIsEmpty(getCategoryList(store)) ? [] : getCategoryList(store).map(id => getCategoryById(store, id));
 
 export const getEditingNode = store => {
     const editingNodeId = getCategoriesState(store).editingId;
@@ -195,6 +203,5 @@ export const getSiblingsByEditedAndAddedNodes = (store) => {
     newAddedNodes.forEach(node => {
         result[node.id] = getCategoriesByParentId(store, node.parentId).filter(c => c.id !== node.id);
     });
-    console.log('result: ', result);
     return result;
 };

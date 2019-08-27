@@ -1,4 +1,4 @@
-import React from 'react'
+import React, {Component} from 'react'
 import {TextPrompt, PasswordPrompt} from './Prompts'
 import * as ReactBootstrap from 'reactstrap';
 import PromptInput from './PromptInput'
@@ -17,7 +17,7 @@ const ModalHeader = ReactBootstrap.ModalHeader;
  * @example this.dialog.show({body: 'Hello!', actions: [Dialog.Action('do', () => console.log('ok'))]})
  * @example this.dialog.showAlert('Hello!')
  */
-class Dialog extends React.Component {
+class Dialog extends Component {
     /**
      * Set default options for applying to all dialogs.
      * @param options

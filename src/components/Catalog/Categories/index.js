@@ -2,6 +2,8 @@ import React, {Component} from 'react';
 import Loadable from 'react-loadable';
 import {Card, CardBody, CardHeader, Col, Row} from "reactstrap";
 import Loading from "../../Loading";
+import Button from "reactstrap/es/Button";
+import {showModal} from "../../../actions/Notification";
 
 const TreeView = Loadable({
     loader: () => import('../../../containers/Categories/TreeView'),
@@ -47,6 +49,10 @@ export default class Categories extends Component {
                                 </div>
                             </CardBody>
                         </Card>
+                        <Button onClick={() => {
+                            alert('zaonssaa');
+                            this.props.modalTest();
+                        }}>Test</Button>
                     </Col>
                 </Row>
             </div>

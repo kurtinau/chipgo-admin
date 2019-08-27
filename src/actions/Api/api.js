@@ -1,4 +1,5 @@
-import API from "../../config/Api";
+import API, {descriptionImageURL} from "../../config/Api";
+import axios from "axios";
 
 export const callApiGet = (config, requestCB, successCB, errorCB) => {
     return dispatch => {
@@ -7,6 +8,7 @@ export const callApiGet = (config, requestCB, successCB, errorCB) => {
             .then(function (response) {
                 console.log(response);
                 const data = response.data.response;
+                // console.log('get data: ',data);
                 dispatch(successCB(data));
             }).catch(function (error) {
             console.log(error);
@@ -48,18 +50,47 @@ export const callAPIPut = (config, requestCB, successCB, errorCB) => {
     }
 };
 
-export const callAPIDelete = (config, requestCB, successCB, errorCB, node) => {
+export const callAPIDelete = (config, requestCB, successCB, errorCB, resObj = {}, successFn = () => {
+}) => {
     return dispatch => {
         dispatch(requestCB);
         API.delete(config.url)
             .then(function (response) {
                 // console.log('hello-delete   ',response);
-                const data = node;
+                const data = resObj;
                 dispatch(successCB(data));
-                console.log('delete success', data);
+                successFn();
             }).catch(function (error) {
-            console.log('zaasnsdfsdfsd',error);
             dispatch(errorCB(error));
         });
+    }
+};
+
+export const callAPIDeleteFile = (deletedPaths) => {
+    return API.delete('/1/images', {data: deletedPaths})
+        .then(function (response) {
+        }).catch(function (error) {
+            console.error(error);
+        });
+};
+
+export const uploadImage = (files) => {
+    try {
+        let formData = new FormData();// instantiate it
+        // suppose you have your file ready
+        // formData.set('file', yourFile)
+        files.forEach(file => formData.append('files', file));
+        const response = axios.post(descriptionImageURL, formData, {
+            headers:
+                {
+                    'content-type':
+                        'multipart/form-data' // do not forget this
+                }
+        });
+        console.log(response);
+        return response;
+    } catch (error) {
+        console.error(error);
+        return error;
     }
 };

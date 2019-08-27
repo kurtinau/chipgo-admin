@@ -278,7 +278,7 @@ function categoriesReducer(state = initialState, action) {
             //delete editing list
             let deletedEditedByIds = {...state.revisionHistory.byIds};
             let deletedEditedAllIds = [...state.revisionHistory.allIds];
-            if(deletedEditedAllIds.length > 0 && deletedEditedAllIds.includes(deletedDataId)){
+            if (deletedEditedAllIds.length > 0 && deletedEditedAllIds.includes(deletedDataId)) {
                 delete deletedEditedByIds[deletedDataId];
                 deletedEditedAllIds = deleteAllId(deletedEditedAllIds, deletedDataId);
             }
@@ -363,7 +363,22 @@ function categoriesReducer(state = initialState, action) {
                 },
             };
         default:
-            return state;
+            return {
+                ...state,
+                byIds: {...state.byIds},
+                allIds: [...state.allIds],
+                revisionHistory: {
+                    ...state.revisionHistory,
+                    byIds: {...state.revisionHistory.byIds},
+                    allIds: [...state.revisionHistory.allIds],
+                    newNodes: {
+                        ...state.revisionHistory.newNodes,
+                        byIds: {...state.revisionHistory.newNodes.byIds},
+                        allIds: [...state.revisionHistory.newNodes.allIds],
+                    },
+                    undoNode: {...state.revisionHistory.undoNode},
+                },
+            };
     }
 }
 
