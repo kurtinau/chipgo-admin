@@ -10,11 +10,15 @@ import * as serviceWorker from './serviceWorker';
 
 import {Provider} from 'react-redux';
 import {store} from './store';
+import {ConnectedRouter} from 'connected-react-router';
+import {history} from "./store";
 import Notification from "./components/Notification";
 
 ReactDOM.render(
     <Provider store={store}>
-        <App />
+        <ConnectedRouter history={history}>
+            <App/>
+        </ConnectedRouter>
         <Notification/>
     </Provider>,
     document.getElementById('root'));

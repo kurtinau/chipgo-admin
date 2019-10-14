@@ -20,6 +20,7 @@ const getCategoryByIds = store => getCategoriesState(store) ? getCategoriesState
 export const getCategories = createSelector(
     [getCategoryList, getCategoryByIds],
     (allIds, byIds) => {
+        console.log('categories selector-getCategories::: ');
         return allIds.map(id => byIds[id])
     }
 );

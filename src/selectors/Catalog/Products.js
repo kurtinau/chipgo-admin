@@ -1,8 +1,8 @@
 import {getItemById, getItemsUtil} from "../util";
 import {flow, set} from 'lodash/fp';
 import {getCategories} from "./Categories";
-import {getTreeFromFlatData} from "react-sortable-tree";
-import {cloneDeep, isEmpty} from "lodash";
+import {getTreeFromFlatData, walk} from "react-sortable-tree";
+import {cloneDeep, isEmpty, isNull} from "lodash";
 import {createSelector} from "reselect";
 import {hostName} from "../../config/Api";
 
@@ -30,6 +30,14 @@ const getProductByid = (store, id) => {
     return isEmpty(getProductByIds(store)) ? {} : getProductByIds(store)[id];
 };
 
+export const getDescriptionByid = (store, id) => {
+    const product = getProductByid(store, id);
+    if (!isEmpty(product))
+        return isNull(product.description) ? {} : product.description;
+    else
+        return {};
+};
+
 
 // export const getProduct = (store, id) => {
 //     // console.log('getproduct',getProductByid(store, id));
@@ -54,15 +62,24 @@ const getProductSelector = createSelector(
             return {};
         } else {
             const productWithHostName = cloneDeep(product);
-            console.log('prr: ', product);
-            if(!isEmpty(product.file_path)){
+            if (!isEmpty(product.file_path) && !isNull(product.file_path)) {
                 //prepend hostname to image url
                 prependHostname2ImageUrl(productWithHostName);
+                console.log('image file need to add hostName:: ', productWithHostName);
             }
-            //prepend hostname to description image url
-            let descriptionObj = JSON.parse(productWithHostName.description);
-            Object.values(descriptionObj.entityMap).forEach(value => value.data.src = hostName.concat(value.data.src));
-            productWithHostName.description = descriptionObj;
+            if (!isEmpty(product.description)) {
+                //prepend hostname to description image url
+                let descriptionObj = productWithHostName.description;
+                Object.values(descriptionObj.entityMap).forEach(value => {
+                    if (value.type === 'IMAGE' && !value.data.src.startsWith('http')) {
+                        console.log('need to add hostName:: ', value.data.src);
+                        value.data.src = hostName.concat(value.data.src);
+                    }
+                });
+                productWithHostName.description = descriptionObj;
+            }else{
+                productWithHostName.description = {};
+            }
             return productWithHostName;
         }
     }
@@ -84,9 +101,9 @@ export const makeGetProductWithoutDescription = () => createSelector(
     getProductByid,
     (product) => {
         console.log('prras: ', product);
-        if(isEmpty(product.file_path)){
+        if (isEmpty(product.file_path)) {
             return product;
-        }else{
+        } else {
             const productWithHostName = cloneDeep(product);
             //prepend hostname to image url
             prependHostname2ImageUrl(productWithHostName);
@@ -99,6 +116,7 @@ export const makeGetProductWithoutDescription = () => createSelector(
 
 /** selector for ProductForm page **/
 const transformState2DropdownData = (categories, ids = []) => {
+    console.log('transform list to dropdown data');
     let data = [];
     if (isEmpty(ids)) {
         data = getTreeFromFlatData({
@@ -134,20 +152,61 @@ const transformState2DropdownData = (categories, ids = []) => {
     return data;
 };
 
-export const getDropdownTreeSelectData = (store) => {
-    const categories = getCategories(store);
-    // const categories = getItemsUtil(getCategoriesState(store));
-    if (categories.length != 0) {
-        // console.log('return category');
-        return transformState2DropdownData(categories);
+export const makeGetDropdownTreeSelectData = () => createSelector(
+    getCategories,
+    (categories) => {
+        if (categories.length != 0) {
+            // console.log('return category');
+            console.log('category select tree');
+            return transformState2DropdownData(categories);
+        }
+        return [];
     }
-    return [];
-};
+);
+
+
+// export const getDropdownTreeSelectData = (store) => {
+//     const categories = getCategories(store);
+//     // const categories = getItemsUtil(getCategoriesState(store));
+//     if (categories.length != 0) {
+//         // console.log('return category');
+//         console.log('category select tree');
+//         return transformState2DropdownData(categories);
+//     }
+//     return [];
+// };
+
+// const getProductCategory_id = (store, id) => {
+//     console.log('product selector-getProductCategory_id');
+//     return isEmpty(getProduct(store, id)) ? [] : getProduct(store, id).category_id.split(',');
+// };
+
+const getProductCategory_id = createSelector(
+    getProductByid,
+    (product) => isEmpty(product) ? '' : product.category_id
+    )
+;
+
+export const makeGetDropdownTreeSelectDataByCategoryIds = () => createSelector(
+    getCategories,
+    getProductCategory_id,
+    (categories, category_id) => {
+        if (!isEmpty(categories)) {
+            if (!isEmpty(category_id) && category_id !== '0') {
+                const ids = category_id.split(',');
+                return transformState2DropdownData(categories, ids);
+            } else {
+                return transformState2DropdownData(categories);
+            }
+        }
+        return [];
+    }
+);
 
 export const getDropdownTreeSelectDataByCategoryIds = (store, id) => {
     // const ids = isEmpty(idStr) ? [] : idStr.split(',');
     // const categories = getItemsUtil(getCategoriesState(store));
-    const ids = isEmpty(getProduct(store, id)) ? [] : getProduct(store, id).category_id.split(',');
+    const ids = getProductCategory_id(store, id);
     const categories = getCategories(store);
     // console.log('pass-in: ', categories);
     if (!isEmpty(categories)) {

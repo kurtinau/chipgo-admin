@@ -65,32 +65,3 @@ export const callAPIDelete = (config, requestCB, successCB, errorCB, resObj = {}
         });
     }
 };
-
-export const callAPIDeleteFile = (deletedPaths) => {
-    return API.delete('/1/images', {data: deletedPaths})
-        .then(function (response) {
-        }).catch(function (error) {
-            console.error(error);
-        });
-};
-
-export const uploadImage = (files) => {
-    try {
-        let formData = new FormData();// instantiate it
-        // suppose you have your file ready
-        // formData.set('file', yourFile)
-        files.forEach(file => formData.append('files', file));
-        const response = axios.post(descriptionImageURL, formData, {
-            headers:
-                {
-                    'content-type':
-                        'multipart/form-data' // do not forget this
-                }
-        });
-        console.log(response);
-        return response;
-    } catch (error) {
-        console.error(error);
-        return error;
-    }
-};

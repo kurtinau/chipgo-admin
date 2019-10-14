@@ -7,9 +7,10 @@ const Dashboard = React.lazy(() => import('./components/Dashboard'));
 // const Categories = React.lazy(() => import('./components/Catalog/Categories'));
 const Categories = React.lazy(() => import('./containers/Categories'));
 const Products = React.lazy(() => import('./containers/Products'));
-const AddProduct = React.lazy(() => import('./containers/Products/AddProduct'));
-const EditProduct = React.lazy(() => import('./containers/Products/EditProduct'));
-// const EditProduct = React.lazy(() => import('./components/Catalog/Products/EditProduct'));
+const AddProduct = React.lazy(() => import('./components/Catalog/Products/AddProduct'));
+// const AddProduct = React.lazy(() => import('./containers/Products/AddProduct'));
+// const EditProduct = React.lazy(() => import('./containers/Products/EditProduct'));
+const EditProduct = React.lazy(() => import('./components/Catalog/Products/EditProduct'));
 //---------------------------------------------------------------------------------------------------
 
 // https://github.com/ReactTraining/react-router/tree/master/packages/react-router-config

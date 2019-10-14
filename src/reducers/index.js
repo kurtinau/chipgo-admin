@@ -1,12 +1,14 @@
-import { combineReducers } from 'redux';
+import {combineReducers} from 'redux';
+import {connectRouter} from 'connected-react-router'
 import CatalogReducer from "./Catalog";
 import ApiReducer from "./Api";
 import NotificationReducer from "./Notification";
 
-const appReducer = combineReducers({
-    catalog : CatalogReducer,
+const createRootReducer = (history) => combineReducers({
+    router: connectRouter(history),
+    catalog: CatalogReducer,
     api: ApiReducer,
     notification: NotificationReducer,
 });
 
-export default appReducer;
+export default createRootReducer;

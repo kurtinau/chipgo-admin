@@ -8,63 +8,7 @@ import {setDescription} from "../../../actions/Catalog/Products";
 
 
 const WysiwygEditor = (props) => {
-    const dispatch = useDispatch();
     const [uploadedImages, setUploadedImages] = useState([]);
-    const [editorState, setEditorState] = useState(EditorState.createEmpty());
-    useEffect(() => {
-        const {description} = props;
-        console.log('descri:::::: ', description);
-        if (!isEmpty(description)) {
-            let newDescription = {
-                raw: description,
-                files: [],
-                remoteFiles: [],
-            };
-            Object.keys(description.entityMap).forEach(key => {
-                newDescription.remoteFiles.push(description.entityMap[key].data.src);
-            });
-            // dispatch(setDescription(newDescription));
-            // this.props.setDescription(newDescription);
-            setEditorState(EditorState.createWithContent(convertFromRaw(description)));
-            // this.setState({
-            //     editorState: EditorState.createWithContent(convertFromRaw(descriptionObj)),
-            // });
-        }
-    }, [props.description]);
-
-
-    const onEditorStateChange = (editorState) => {
-        const content = editorState.getCurrentContent();
-        const raw = convertToRaw(content);
-        let description = {
-            raw: raw,
-            files: {},
-            remoteFiles: {},
-        };
-        const entityValues = Object.values(raw.entityMap);
-        if (!isEmpty(entityValues)) {
-            entityValues.forEach((value, index) => {
-                const fileSrc = value.data.src;
-                if (!isEmpty(uploadedImages)) {
-                    if (fileSrc.startsWith('blob:')) {
-                        //file from local and waiting to upload
-                        description.files[index] = uploadedImages.filter(obj => obj.localSrc === fileSrc)[0].file;
-                    } else {
-                        //file from remote server
-                        description.remoteFiles[index] = fileSrc;
-                    }
-                } else {
-                    //file from remote server
-                    description.remoteFiles[index] = fileSrc;
-                }
-            });
-        }
-
-        console.log('dess: ', description);
-        dispatch(setDescription(description));
-        // props.setDescription(description);
-        setEditorState(editorState);
-    };
 
     const uploadImageCallBack = (file) => {
         // long story short, every time we upload an image, we
@@ -80,6 +24,7 @@ const WysiwygEditor = (props) => {
             file: file,
             localSrc: URL.createObjectURL(file),
         };
+        console.log('type: ', file.type);
         newUploadedImages.push(imageObject);
         setUploadedImages(newUploadedImages);
         // this.setState({uploadedImages: uploadedImages});
@@ -96,12 +41,17 @@ const WysiwygEditor = (props) => {
         );
     };
 
+    const onChange = (editorState) => {
+        console.log('des changed: ', convertToRaw(editorState.getCurrentContent()));
+        props.onChange('description', editorState);
+    };
+
     return (
         <Editor
-            editorState={editorState}
+            editorState={props.description}
             wrapperClassName="demo-wrapper"
             editorClassName="demo-editor"
-            onEditorStateChange={onEditorStateChange}
+            onEditorStateChange={onChange}
             toolbar={{
                 inline: {inDropdown: true},
                 list: {inDropdown: true},
@@ -116,10 +66,10 @@ const WysiwygEditor = (props) => {
             }}
             handleKeyCommand={(command) => {
 
-                let newState = RichUtils.handleKeyCommand(editorState, command);
+                let newState = RichUtils.handleKeyCommand(props.description, command);
 
                 if (newState) {
-                    onEditorStateChange(newState);
+                    onChange(newState);
                     return "handled"
                 }
 

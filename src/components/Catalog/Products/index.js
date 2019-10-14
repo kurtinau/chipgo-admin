@@ -2,9 +2,9 @@ import React, {Component} from 'react';
 import Loadable from "react-loadable";
 import loading from "../../Loading";
 import {Route, Switch} from "react-router-dom";
-import AddProduct from "../../../containers/Products/AddProduct";
 import ProductsView from "../../../containers/Products/ProductsView";
-import EditProduct from "../../../containers/Products/EditProduct";
+import EditProduct from "./EditProduct";
+import AddProduct from "./AddProduct";
 // import EditProduct from "./EditProduct";
 
 // const AddProductModal = Loadable({

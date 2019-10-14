@@ -8,7 +8,7 @@ import ButtonGroup from "reactstrap/es/ButtonGroup";
 import {Row} from "reactstrap";
 import Col from "reactstrap/es/Col";
 import API, {hostName, imageURL} from "../../../config/Api";
-import {deleteProductFiles, setFiles} from "../../../actions/Catalog/Products";
+import {deleteProductFiles, appendFile, removeFile} from "../../../actions/Catalog/Products";
 import {isEmpty} from "lodash";
 import {showModal} from "../../../actions/Notification";
 import {getIndicatorSelector} from "../../../selectors/Api";
@@ -118,11 +118,19 @@ const ImageVideoUploader = (props) => {
                 };
             } else {
                 console.log('file: ', file);
-                dispatch(setFiles(file));
+                if (props.product_id <= 0) {
+                    //when in the add product page, all files are waiting to upload, so need to pass up to parent
+                    props.onChange(myDropzone.files);
+                } else {
+                    //when in the edit product page, only pass files with status "queued" or 'added' to parent
+                    let waiting2uploadFiles = myDropzone.getQueuedFiles();
+                    waiting2uploadFiles.push(file);
+                    props.onChange(waiting2uploadFiles.length);
+                }
                 //remove file that is not uploaded to server
-                props.waiting2UploadIncrement();
                 btnText = 'Remove File';
                 clickFun = () => {
+                    console.log('props: ', props);
                     dispatch(showModal({
                         title: 'Remove File',
                         content: 'Are you sure remove file?',
@@ -139,11 +147,13 @@ const ImageVideoUploader = (props) => {
             console.log('asdf:: ', files);
             const responseFiles = JSON.parse(response).response;
             console.log('ressss: ', responseFiles);
-            dispatch(setFiles(responseFiles));
+            // dispatch(setFiles(responseFiles));
             responseFiles.forEach((resFile, index) => {
-                props.waiting2UploadDecrement();
+                // props.waiting2UploadDecrement();
                 editRemoveBtnAfterUpload(resFile, files[index]);
             });
+            //after upload files, need to set waiting2uploadfiles empty
+            props.onChange(0);
         },
         removedfile: (file) => {
             // if (file.status === 'complete') {
@@ -152,19 +162,31 @@ const ImageVideoUploader = (props) => {
             //     console.log('delete server file: ', file);
             // }
             if (file.status !== 'complete') {
-                props.waiting2UploadDecrement();
+                if (props.product_id <= 0) {
+                    props.onChange(myDropzone.files);
+                } else {
+                    //don't need pass all file object to parent, just a length of queuedFiles array would work
+                    props.onChange(myDropzone.getQueuedFiles().length)
+                }
             }
         }
     };
 
     const removeAllFiles = () => {
         if (myDropzone) {
-            const files = myDropzone.files;
-            files.forEach(file => {
-                if (file.status !== 'success' && file.status !== 'complete') {
-                    myDropzone.removeFile(file);
+            dispatch(showModal({
+                title: 'Remove Files',
+                content: 'Are you sure remove all files?',
+                type: 'confirm',
+                onConfirm: () => {
+                    const files = myDropzone.files;
+                    files.forEach(file => {
+                        if (file.status !== 'success' && file.status !== 'complete') {
+                            myDropzone.removeFile(file);
+                        }
+                    });
                 }
-            });
+            }));
         }
     };
     const uploadAllFiles = () => {
@@ -187,7 +209,7 @@ const ImageVideoUploader = (props) => {
 
                         {
                             //when product_id is less than 0, then this component would be in adding product page
-                            props.product_id < 0 ?
+                            props.product_id <= 0 ?
                                 null
                                 :
                                 <Button color="primary" onClick={uploadAllFiles}>Upload</Button>

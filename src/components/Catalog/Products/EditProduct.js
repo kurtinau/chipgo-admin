@@ -1,204 +1,138 @@
-import React, {Component} from 'react';
-import {useSelector, useDispatch} from 'react-redux';
-import {getDropdownTreeSelectDataByCategoryIds, getProduct} from "../../../selectors/Catalog/Products";
+import React, {useEffect, useMemo} from 'react';
+import 'react-dropzone-uploader/dist/styles.css'
+import {set} from "lodash/fp";
 import ProductForm from "./ProductForm";
+import CardHeader from "reactstrap/es/CardHeader";
+import CardBody from "reactstrap/es/CardBody";
+import {Card, Col, Form, Input, InputGroup, InputGroupAddon, InputGroupText, Row} from "reactstrap";
+import {withFormik} from "formik";
+import {EditorState, convertFromRaw, convertToRaw, RichUtils} from 'draft-js';
+import {useDispatch, useSelector} from "react-redux";
+import {
+    getFiles, getProduct,
+    makeGetDropdownTreeSelectDataByCategoryIds,
+} from "../../../selectors/Catalog/Products";
+import * as Yup from 'yup';
 import {isEmpty, isEqual, isUndefined} from "lodash";
-import {set} from 'lodash/fp';
-import {deleteProductFiles, fetchProducts} from "../../../actions/Catalog/Products";
+import {addProduct, editProduct, fetchProductByid} from "../../../actions/Catalog/Products";
 import {fetchCategories} from "../../../actions/Catalog/Categories";
 import {INFO, WARNING} from "../../../constants/Notification";
+import {showModal, showToast} from "../../../actions/Notification";
 
+const EditProduct = (props) => {
+    const id = props.match.params.id;
+    const dispatch = useDispatch();
+    useEffect(() => {
+        // get product by id(props.match.params.id)
+        dispatch(fetchProductByid(id));
+    }, []);
+    useEffect(() => {
+        // get categories from server
+        dispatch(fetchCategories());
+    }, []);
+    // select product by id
+    const product = useSelector(state => getProduct(state, id));
+    const getDropdownTreeSelectDataByCategoryIds = useMemo(makeGetDropdownTreeSelectDataByCategoryIds, []);
+    const categories = useSelector(state => getDropdownTreeSelectDataByCategoryIds(state, id));
+    if (!isEmpty(product) && !isEmpty(categories)) {
+        const formikEnhancer = withFormik({
+            mapPropsToValues: props => ({
+                ...product,
+                description: isEmpty(product.description) ? new EditorState.createEmpty() : EditorState.createWithContent(convertFromRaw(product.description)),
+                categories: categories,
+                files: 0,
+            }),
+            validationSchema: Yup.object().shape({
+                name: Yup.string()
+                    .trim()
+                    .required('Required!'),
+                sku: Yup.string()
+                    .trim()
+                    .required('Required!'),
+                price: Yup.number()
+                    .min(1, 'The minimal price is $1!')
+                    .positive('The price must be a positive number!')
+                    .required('Required!'),
+            }),
+            handleSubmit: (values, {setSubmitting}) => {
+                setTimeout(() => {
+                    // you probably want to transform draftjs state to something else, but I'll leave that to you.
+                    // alert(JSON.stringify(values, null, 2));
+                    console.log("values: ", values);
+                    let editedProduct = {};
+                    const newName = values.name.trim();
+                    const newPrice = values.price;
+                    const newSku = values.sku.trim();
+                    const newIspublished = values.is_published ? 1 : 0;
+                    if (product.name !== newName)
+                        editedProduct.name = newName;
+                    if (product.price !== newPrice)
+                        editedProduct.price = newPrice;
+                    if (product.sku !== newSku)
+                        editedProduct.sku = newSku;
+                    if (product.is_published !== newIspublished)
+                        editedProduct.is_published = newIspublished;
 
-export default class EditProduct extends Component {
-    constructor(props) {
-        super(props);
-        this.state = {
-            product: props.product,
-            originalProduct: props.product,
-            waiting2Upload: 0,
-        };
-        this.handleSubmit = this.handleSubmit.bind(this);
-        this.handleInputChange = this.handleInputChange.bind(this);
-        this.handelDropdownSelectChange = this.handelDropdownSelectChange.bind(this);
-        this.imageWaiting2UploadIncrement = this.imageWaiting2UploadIncrement.bind(this);
-        this.imageWaiting2UploadDecrement = this.imageWaiting2UploadDecrement.bind(this);
-        this.toast4FieldEmpty = this.toast4FieldEmpty.bind(this);
-    }
+                    const contentState = values.description.getCurrentContent();
+                    const contentRaw = convertToRaw(contentState);
+                    console.log('descriptionRAW: ', contentRaw);
+                    console.log('original desc:: ', product.description);
+                    if (!isEqual(product.description, contentRaw))
+                        editedProduct.description = contentRaw;
+                    if (isEmpty(editedProduct)) {
+                        if (values.files !== 0) {
+                            //nothing changed expected images waiting to upload
+                            dispatch(showToast({
+                                type: WARNING,
+                                content: 'Nothing changed, but there are images waiting for upload, if you wanna add new product image, just click upload button...'
+                            }));
+                        } else {
+                            dispatch(showToast({type: INFO, content: 'Nothing Changed...'}));
+                        }
 
-    handleInputChange(event) {
-        const target = event.target;
-        const value = target.type === 'checkbox' ? (target.checked ? 1 : 0) : target.value;
-        const name = target.name;
-        this.setState({
-            product: set(name, value, this.state.product),
-            [name]: value,
-        });
-    }
-
-    handelDropdownSelectChange(currentNode, selectedNodes) {
-        const ids = selectedNodes.map(node => node.id);
-        this.setState({
-            // category_id: ids.toString()
-            product: set('category_id', ids.toString(), this.state.product),
-            category_id: ids.toString(),
-        });
-    }
-
-    toast4FieldEmpty(fieldName) {
-        this.props.showToast({
-            type: WARNING,
-            content: fieldName + ' cannot be empty.',
-        });
-    }
-
-    handleSubmit() {
-        const {originalProduct, name, sku, price, is_published, category_id, waiting2Upload} = this.state;
-        const {description, showToast, showModal, submitProduct} = this.props;
-        let editedProduct = {};
-        let validation = true;
-        if (!isUndefined(name) && (name !== originalProduct.name)) {
-            if (isEmpty(name.trim())) {
-                this.toast4FieldEmpty('Name');
-                validation = false;
-            } else {
-                editedProduct.name = name;
-                console.log('name: ', name);
-            }
-        }
-        if (!isUndefined(sku) && (sku !== originalProduct.sku)) {
-            if (isEmpty(sku.trim())) {
-                this.toast4FieldEmpty('SKU');
-                validation = false;
-            } else {
-                editedProduct.sku = sku;
-                console.log('sku: ', sku);
-            }
-        }
-        if (!isUndefined(price) && (price !== originalProduct.price)) {
-            if (isEmpty(price.trim())) {
-                this.toast4FieldEmpty('Price');
-                validation = false;
-            } else {
-                editedProduct.price = price;
-                console.log('originalProduct.price: ',originalProduct.price);
-                console.log('price: ', price);
-            }
-        }
-        if (!isUndefined(is_published) && (is_published !== originalProduct.is_published)) {
-            editedProduct.is_published = is_published;
-            console.log('is_published: ', is_published);
-        }
-        if (!isUndefined(category_id) && (category_id !== originalProduct.category_id)) {
-            editedProduct.category_id = category_id;
-            console.log('category_id: ', category_id);
-        }
-        if (!isEmpty(description) && !isEqual(description.raw, originalProduct.description)) {
-            editedProduct.description = description;
-            editedProduct.originalDescription = originalProduct.description;
-        }
-        if (!isEmpty(editedProduct)) {
-            editedProduct.id = originalProduct.id;
-            if (waiting2Upload > 0) {
-                showModal({
-                    title: 'Submit Change?',
-                    content: 'There are images waiting for upload, do you want save change without uploading images?',
-                    type: 'confirm',
-                    onConfirm: () => {
-                        console.log('EDIT;:: ', editedProduct);
-                        submitProduct(editedProduct);
-                        showToast({
-                            type: WARNING,
-                            content: 'There are images waiting for upload, You have to click upload button to upload images.'
-                        });
+                    } else {
+                        editedProduct.id = product.id;
+                        if (values.files !== 0) {
+                            //something changed, and also there are images waiting to upload.
+                            dispatch(showModal({
+                                title: 'Submit Change?',
+                                content: 'There are images waiting for upload, do you want save change without uploading images?',
+                                type: 'confirm',
+                                onConfirm: () => {
+                                    console.log('EDIT;:: ', editedProduct);
+                                    dispatch(editProduct(editedProduct));
+                                }
+                            }));
+                        } else {
+                            console.log('editedProduct: ', editedProduct);
+                            dispatch(editProduct(editedProduct));
+                        }
                     }
-                });
-            } else if (validation) {
-                submitProduct(editedProduct);
-            }
-
-        } else if (waiting2Upload > 0) {
-            showToast({
-                type: WARNING,
-                content: 'Nothing changed, but there are images waiting for upload, if you wanna add new product image, just click upload button...'
-            });
-        } else {
-            if (validation)
-                showToast({type: INFO, content: 'Nothing Changed...'});
-        }
-    }
-
-    imageWaiting2UploadIncrement() {
-        this.setState({
-            waiting2Upload: this.state.waiting2Upload + 1,
+                    setSubmitting(false);
+                }, 1000);
+            },
+            displayName: 'EditProductForm',
         });
-    }
-
-    imageWaiting2UploadDecrement() {
-        this.setState({
-            waiting2Upload: this.state.waiting2Upload - 1,
-        });
-    }
-
-
-    componentDidUpdate(prevProps, prevState, snapshot) {
-        if (!isEmpty(this.props.product) && isEmpty(prevState.product)) {
-            console.log('did update');
-            this.setState({
-                product: this.props.product,
-                originalProduct: this.props.product,
-            });
-        }
-    }
-
-    // shouldComponentUpdate(nextProps, nextState, nextContext) {
-    //     if (isEqual(this.state.originalProduct, nextProps.product)) {
-    //         console.log('this product: ', this.state.originalProduct);
-    //         console.log('next product: ', nextProps.product);
-    //         return false;
-    //     } else {
-    //         return true;
-    //     }
-    // }
-
-    componentDidMount() {
-        this.props.getProductByid(this.props.match.params.id);
-        this.props.getCategories();
-    }
-
-    render() {
-        const {categories} = this.props;
+        const EnhancerEditProductForm = formikEnhancer(ProductForm);
         return (
-            <ProductForm {...this.props} product={this.state.product} handleSubmit={this.handleSubmit}
-                         handleInputChange={this.handleInputChange}
-                         handelDropdownSelectChange={this.handelDropdownSelectChange} categories={categories}
-                         title={"Edit"} waiting2UploadIncrement={this.imageWaiting2UploadIncrement}
-                         waiting2UploadDecrement={this.imageWaiting2UploadDecrement}
-            />
+            <Card>
+                <CardHeader>
+                    <h2>Edit Product
+                        <button className="btn btn-success btn-lg float-right"
+                                onClick={props.history.goBack}><span className="fa fa-arrow-left"></span> Back
+                        </button>
+                    </h2>
+                </CardHeader>
+                <CardBody>
+                    <EnhancerEditProductForm/>
+                    {/*<ProForm product={this.state.product} categories={categories}/>*/}
+                </CardBody>
+            </Card>
         );
-    }
-}
+    } else
+        return (<div></div>);
 
-// const handleSubmit = (product) => {
-//
-// };
-//
-// const EditProduct = (props) => {
-//     const dispatch = useDispatch();
-//     const id = props.match.params.id;
-//     const product = useSelector(state => getProduct(state, id));
-//     let category_ids = [];
-//     let categories = useSelector(state => getDropdownTreeSelectDataByCategoryIds(state, category_ids));
-//     if (isEmpty(product)) {
-//         dispatch(fetchProducts());
-//     } else if (isEmpty(categories)) {
-//         dispatch(fetchCategories());
-//     } else {
-//         category_ids = product.category_id.split(',');
-//     }
-//     console.log('pro: ', product);
-//     console.log('ccc: ', categories);
-//     return (
-//         <ProductForm {...props} product={product} parentSubmitClick={handleSubmit} categories={categories}/>
-//     );
-// };
-// export default EditProduct;
+};
+
+export default EditProduct;
+

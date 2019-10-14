@@ -9,6 +9,7 @@
     "@coreui/react": "^2.5.1",
     "axios": "^0.18.1",
     "classnames": "^2.2.6",
+    "connected-react-router": "^6.5.2",
     "draft-js": "^0.10.5",
     "flag-icon-css": "^3.3.0",
     "font-awesome": "^4.7.0",
@@ -38,7 +39,8 @@
     "redux-thunk": "^2.3.0",
     "reselect": "^4.0.0",
     "simple-line-icons": "^2.4.1",
-    "typescript": "^3.5.2"
+    "typescript": "^3.5.2",
+    "yup": "^0.27.0"
   },
   "scripts": {
     "start": "react-scripts start",
@@ -54,5 +56,14 @@
     "not dead",
     "not ie <= 11",
     "not op_mini all"
-  ]
+  ],
+  "devDependencies": {
+    "@redux-saga/testing-utils": "^1.1.1",
+    "check-prop-types": "^1.1.2",
+    "enzyme": "^3.10.0",
+    "enzyme-adapter-react-16": "^1.14.0",
+    "jest-enzyme": "^7.1.1",
+    "moxios": "^0.4.0",
+    "redux-saga-test-plan": "^4.0.0-rc.3"
+  }
 }

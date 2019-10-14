@@ -58,7 +58,7 @@ export const findIdByFields = (arr, obj) => {
         let flag = true;
         for (let j = 0; j < keys.length; j++) {
             const key = keys[j];
-            if(arr[i][key] !== obj[key]){
+            if (arr[i][key] !== obj[key]) {
                 flag = false;
                 break;
             }
@@ -69,4 +69,15 @@ export const findIdByFields = (arr, obj) => {
         }
     }
     return result;
+};
+
+/**
+ * convert from blob obj to File obj
+ * @param obj = {name, url, lastModified, type}
+ */
+export const blob2file = (obj) => {
+    if (isEmpty(obj)) {
+        return {};
+    }
+    return new File(obj.url, obj.name, {lastModified: obj.lastModified, type: obj.type});
 };
